@@ -1,118 +1,126 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime, timedelta
+from sklearn.ensemble import IsolationForest
 
-def load_data(file_path: str) -> pd.DataFrame:
-    """
-    Loads and returns a DataFrame from a CSV file.
-
-    Args:
-        file_path (str): The path to the CSV file.
-
-    Returns:
-        pd.DataFrame: The loaded data, or raises an exception if the file is not found or cannot be loaded.
-    """
-
+# Define functions to handle input, find outliers, clean data, and main logic
+def load_data(data_path):
     try:
-        return pd.read_csv(file_path)
+        sales_data = pd.read_csv(data_path)
+        return sales_data
     
-    except FileNotFoundError as e:
-        print(f"Error: The file {file_path} was not found.")
-        raise e
-    
-    except pd.errors.EmptyDataError as e:
-        print(f"Error: The file {file_path} is empty.")
-        raise e
-
-
-def clean_data(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Cleans and preprocesses the data by removing missing values, outliers, normalizing or scaling, and handling categorical variables.
-
-    Args:
-        data (pd.DataFrame): The cleaned data.
-
-    Returns:
-        pd.DataFrame: The preprocessed data.
-    """
-
-    try:
-        # Remove rows with missing values
-        data = data.dropna()
-        
-        # Find and remove outliers (more than 2 standard deviations away from the mean)
-        scaler = StandardScaler()
-        data['Sales'] = scaler.fit_transform(data[['Sales']])
-        outliers = np.abs((data['Sales'] - np.mean(data['Sales'])) / np.std(data['Sales'])).max(axis=1) > 3
-        data[outliers] = np.nan
-        
-        # Normalize the numerical columns
-        categorical_cols = ['Category', 'Region']
-        for col in categorical_cols:
-            if col not in data.columns:
-                continue
-            
-            data[col] = pd.DataFrame(data[col].astype('category').cat.codes, columns=[col])
-        
-        # Scale the numerical columns
-        numerical_cols = ['Product', 'Subtotal']
-        for col in numerical_cols:
-            scaler = MinMaxScaler()
-            data[col] = scaler.fit_transform(data[[col]])
-        
-        return data
+    except FileNotFoundError:
+        print(f"The file {data_path} does not exist.")
+        return None
     
     except Exception as e:
-        print(f"Error processing data: {str(e)}")
+        print(f"An error occurred: {str(e)}")
+        return None
 
-
-def plot_sales_data(sales_data: pd.DataFrame, region: str) -> None:
+def find_outliers(sales_data):
     """
-    Plots the sales data for a specific region.
-
-    Args:
-        sales_data (pd.DataFrame): The sales data.
-        region (str): The region to plot.
-    """
-
-    try:
-        # Group by region and calculate total sales
-        sales_grouped = sales_data.groupby('Region')['Sales'].sum()
-        
-        # Plot the result
-        plt.figure(figsize=(10, 6))
-        sales_grouped.plot(kind="bar")
-        plt.title(f"Total Sales in {region}")
-        plt.xlabel("Region")
-        plt.ylabel("Total Sales")
-        
-        # Show the plot
-        plt.show()
+    Find outliers in the 'Price' column.
     
-    except Exception as e:
-        print(f"Error plotting data: {str(e)}")
+    Parameters:
+    sales_data (pd.DataFrame): DataFrame containing 'Date', 'Store', and 'State' columns, as well as a 'Price' column to detect outliers.
 
-
-def main() -> None:
+    Returns:
+    pd.DataFrame: A new DataFrame with outliers removed from the original data.
     """
-    The main function.
-    """
-
-    file_paths = ["Sales1.csv", "Sales2.csv"]  # Specify multiple file paths here
+    # Find dates where there are missing values
+    missing_values_indices = sales_data[sales_data.isnull().any(axis=1)].index
     
-    for file_path in file_paths:
-        try:
-            data = load_data(file_path)
-            
-            if data is not None:
-                sales_data = clean_data(data)
-                
-                plot_sales_data(sales_data, 'State')
-        
-        except Exception as e:
-            print(f"Error processing data: {str(e)}")
+    # Remove duplicates based on date and price
+    for index in list(missing_values_indices):
+        if not (sales_data.loc[index, 'Date'] == sales_data.loc[missing_values_indices[index], 'Date']).all() or \
+            (not (sales_data.loc[index, 'Price'] == sales_data.loc[missing_values_indices[index], 'Price']).all()):
+            sales_data.drop(index, inplace=True)
+    
+    # Find dates where there are missing values in the date column
+    date_missing_values = sales_data[sales_data['Date'].isnull()].index
+    
+    # Remove duplicates based on date and price
+    for index in list(date_missing_values):
+        if not (sales_data.loc[index, 'Date'] == sales_data.loc[date_missing_values[index], 'Date']).all() or \
+            (not (sales_data.loc[index, 'Price'] == sales_data.loc[date_missing_values[index], 'Price']).all()):
+            sales_data.drop(index, inplace=True)
+    
+    # Find dates where there are missing values in the price column
+    price_missing_values = sales_data[sales_data['Price'].isnull()].index
+    
+    # Remove duplicates based on date and price
+    for index in list(price_missing_values):
+        if not (sales_data.loc[index, 'Date'] == sales_data.loc[price_missing_values[index], 'Date']).all() or \
+            (not (sales_data.loc[index, 'Price'] == sales_data.loc[price_missing_values[index], 'Price']).all()):
+            sales_data.drop(index, inplace=True)
+    
+    return sales_data
 
+def clean_and_preprocess(sales_data):
+    """
+    Clean and preprocess data by removing duplicates based on date, price, store, and state columns.
+    
+    Parameters:
+    sales_data (pd.DataFrame): DataFrame containing necessary columns to remove duplicates.
+    
+    Returns:
+    pd.DataFrame: A new DataFrame with duplicates removed from the original data.
+    """
+    # Remove duplicates based on date
+    for index in list(sales_data.index):
+        if not sales_data.loc[index, 'Date'].isnull():
+            del sales_data.loc[index]
+    
+    # Remove duplicates based on price
+    for index in list(sales_data.index):
+        if not sales_data.loc[index, 'Price'].isnull():
+            del sales_data.loc[index]
+    
+    # Remove duplicates based on store and state columns
+    for index in list(sales_data.index):
+        if not sales_data.loc[index, 'Store'].isnull() and not sales_data.loc[index, 'State'].isnull():
+            del sales_data.loc[index]
+    
+    return sales_data
+
+def main():
+    data_path = 'Sales.csv'  # Update this to your data path
+    
+    # Load the data
+    sales_data = load_data(data_path)
+    
+    if sales_data is None:
+        print("No data found.")
+        return
+    
+    # Find outliers in the price column
+    outlier_data = find_outliers(sales_data)
+    
+    # Clean and preprocess the data
+    cleaned_sales_data = clean_and_preprocess(outlier_data)
+    
+    # Print data statistics
+    print(f"Number of rows: {len(cleaned_sales_data)}")
+    print(f"Number of columns: {len(cleaned_sales_data.columns)}")
+    print(f"Data type distribution:\n{cleaned_sales_data.dtypes}")
+    
+    # Plot sales per state and month of the year
+    sales_per_state = cleaned_sales_data.groupby('State')['Price'].sum().to_dict()
+    for state, value in sales_per_state.items():
+        print(f"{state}: {value:.2f}")
+    monthly_sales = {}
+    for date in set(cleaned_sales_data['Date']):
+        month = (datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m')
+        sales_per_month = cleaned_sales_data[cleaned_sales_data['Date'] == date]['Price'].sum()
+        if month not in monthly_sales:
+            monthly_sales[month] = sales_per_month
+        else:
+            monthly_sales[month] += sales_per_month
+    
+    for month, value in monthly_sales.items():
+        print(f"{month}: {value:.2f}")
 
 if __name__ == "__main__":
     main()
