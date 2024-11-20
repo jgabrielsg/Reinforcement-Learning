@@ -5,6 +5,7 @@ import ruff
 import subprocess
 import sys
 import os
+import pathlib
 
 class LLMAgent:
     def __init__(self, model="llama3.2:1b"):
@@ -85,7 +86,10 @@ class Reviewer(LLMAgent):
 
         # Generate detailed feedback
         prompt = (f"{action} Consider the following problem: {self.problem_description}.\n\n"
-                  f"Review the code below and provide detailed feedback to the coder:\n{code}\n\n")
+                f"Static Analysis (Ruff):\n{static_analysis_report}\n\n"
+                f"Execution Results:\n{execution_report}\n\n"
+                f"Review the code below and provide detailed feedback to the coder. "
+                f"Include suggestions to fix execution errors if they exist:\n{code}\n\n")
 
         feedback = self.generate(prompt)
         
@@ -97,7 +101,6 @@ class Reviewer(LLMAgent):
 
         return report, score
 
-    # Static analysis using Ruff
     def _static_analysis_ruff(self, code):
         """
         Uses Ruff to perform static analysis on the code.
@@ -106,13 +109,17 @@ class Reviewer(LLMAgent):
         """
         try:
             # Save code temporarily to pass it to Ruff
-            temp_file_path = os.path.abspath("temp_code.py")
+            temp_file_path = pathlib.Path("temp_code.py").resolve()  # Generate absolute path
             with open(temp_file_path, "w") as f:
                 f.write(code)
 
-            # Run Ruff on the temporary file, ensuring Ruff is available
+            print(f"Temporary file path for Ruff: {temp_file_path}")  # Debugging path
+
+            # Run Ruff with "check" subcommand
             ruff_result = subprocess.run(
-                ["ruff", temp_file_path], capture_output=True, text=True
+                ["ruff", "check", str(temp_file_path)],
+                capture_output=True,
+                text=True
             )
             if ruff_result.returncode == 0:
                 return ruff_result.stdout
@@ -124,7 +131,6 @@ class Reviewer(LLMAgent):
             print(f"Error running Ruff: {e}")
             return "Error: Could not complete static analysis with Ruff."
 
-    # Executes the code and checks for runtime errors
     def _execute_code(self, code):
         """
         Executes the code to check for runtime errors.
@@ -133,10 +139,10 @@ class Reviewer(LLMAgent):
         """
         try:
             result = subprocess.run(
-                [sys.executable, "-c", code],  # Use sys.executable to ensure correct Python interpreter
+                [sys.executable, "-c", code],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=20 # kind of big, but it worked
             )
             if result.returncode == 0:
                 return True, "Code executed successfully."
@@ -145,6 +151,7 @@ class Reviewer(LLMAgent):
         except subprocess.TimeoutExpired:
             return False, "Error: Code execution timed out."
         except Exception as e:
+            print(f"Error during execution: {e}")
             return False, f"Error during execution: {e}"
 
     def _generate_report(self, static_analysis_report, execution_report, feedback):
