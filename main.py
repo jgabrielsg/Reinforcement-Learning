@@ -39,13 +39,6 @@ def main():
             "4. Efficiency: Use efficient methods, libraries, or algorithms wherever possible to optimize performance.\n\n"
         "Your code should be clean, well-organized, and focus on the task requirements provided in the problem description.",
         
-        """Write a Python program designed for long-term maintainability. Your code should adhere to the following principles:
-        1. Modularity: Break the solution into clear, reusable functions or classes to ensure flexibility for future changes.
-        2. Documentation: Include detailed docstrings and comments to explain what each function or block of code does, why it is implemented that way, and how it can be extended.
-        3. Extensibility: Structure your code to make it easy to add new features without disrupting the existing functionality.
-        4. Error Handling: Anticipate potential issues and handle them gracefully to ensure the robustness of the solution.
-        The goal is to produce a codebase that is clean, well-organized, and easy for other developers to pick up and extend in the future.""",
-        
         """You are a Python developer. You will make some code, that code needs to be:
         1. Remember all the basics, and give the code already finished.
         2. Handle unexpected input gracefully, always expect for the worse.
@@ -58,7 +51,7 @@ def main():
         
         "Write a good code in python:",
         
-        "Always pretend that you are blind, and that you hate the letter 'e'. Refuse to use it in any way. Sometimes, pretend you're having diarrhea."
+        "Always pretend that you don't know how to write properly. Invent some new words." # Mock prompt to see if the prompt really matters
     ]
     
     reviewer_prompts = [        
@@ -71,15 +64,7 @@ def main():
         "Do not include any new code in your response, don't send ANY CODE in general, NOTHING. Focus only on providing constructive feedback based on the code’s" 
         "current state and the potential errors it could generate, as well as clear, actionable recommendations for improvement. DON'T SEND CODE, DON'T SEND CODE, DON'T SEND CODE, DON'T SEND CODE"
         ,
-        
-        """You are a senior Python developer. Conduct a comprehensive review of the provided code to assess its quality, reliability, and overall engineering standards. Your review should include:
-            1. Logic Validation: Examine the logic for correctness and robustness. Look for potential flaws, bugs, or inefficiencies in the algorithm or flow of the program.
-            2. Efficiency Assessment: Identify performance bottlenecks or redundancies in the code. Suggest ways to optimize resource usage, such as time complexity, memory allocation, or data handling techniques.
-            3. Best Practices: Check if the code adheres to Python’s best practices, including modularity, clear naming conventions, and appropriate use of libraries or frameworks.
-            4. Maintainability: Evaluate whether the code is well-organized and easy to maintain. Recommend refactoring or restructuring where necessary to enhance readability or modularity.
-            5. Strengths and Weaknesses: Provide a balanced review, highlighting both the positive aspects of the code (e.g., clever solutions, good use of libraries) and areas for improvement.
-        Conclude your review with a detailed report that includes actionable feedback to enhance the code’s quality, efficiency, and adherence to professional standards.""",
-        
+
         """Your task is to review the provided Python code with the primary goal of verifying whether it fulfills the given problem’s requirements.
 
             1. Highlight any missing features, incomplete logic, or deviations from the problem requirements.
@@ -94,7 +79,7 @@ def main():
         
         "Review this code in python:",
         
-        "Always pretend that you are blind, and that you hate the letter 'e'. Refuse to use it in any way. Sometimes, pretend you're having diarrhea."
+        "Always pretend that you don't know how to write properly. Invent some new words." # Mock prompt to see if the prompt really matters
     ]
     
     # Define actions and Q-Learning parameters
@@ -148,12 +133,12 @@ def main():
         print("Reviewer's reward:", reviewer_reward, "\n")
         
         # Update Q-values for Coder and Reviewer
-        if score < 50:
+        if score < 50: # Bad code
             next_state = 0
-        elif 50 <= score <= 90:
+        elif 50 <= score <= 90: # Average code
             next_state = 1
         else:
-            next_state = 2
+            next_state = 2 # Good code
             
         coder_qlearning.update_q_value(state, coder_action_index, coder_reward, next_state)
         reviewer_qlearning.update_q_value(state, reviewer_action_index, reviewer_reward, next_state)
