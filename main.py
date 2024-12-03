@@ -1,4 +1,4 @@
-from agentes import Coder, Reviewer
+from agentes import Coder, Reviewer, MonitoringAndFeedbackAgent
 from ambiente import Environment
 from qlearning import QLearning
 import random
@@ -21,6 +21,7 @@ def main():
         coder = Coder(problem_description=problem_description)
         reviewer = Reviewer(problem_description=problem_description)
         environment = Environment(threshold_score=100)
+        monitor = MonitoringAndFeedbackAgent()
     except Exception as e:
         print(f"Error initializing agents or environment: {e}")
         return
@@ -104,6 +105,14 @@ def main():
         print(f"\n=== Coder is working... ===")
         
         generated_code = coder.generate_code(coder_action, feedback, generated_code) # Gets the last code as well
+
+        # Monitor performance during coder's action
+        monitor.monitor_execution_time(generated_code)  # Monitor the coder's performance
+        memory_usage, cpu_usage = monitor.monitor_resource_usage()  # Monitor resource usage
+
+        print(f"Execution Time: {monitor.end_time - monitor.start_time:.2f} seconds")
+        print(f"Memory Usage: {memory_usage:.2f} MB")
+        print(f"CPU Usage: {cpu_usage:.2f}%")
         
         print("Generated code by Coder:\n", generated_code, "\n")
 
@@ -115,6 +124,9 @@ def main():
         print(f"\n=== Reviewer is working... ===")
 
         feedback, score = reviewer.review_code(generated_code, reviewer_action)
+
+        # Monitor performance during reviewer's action
+        monitor.monitor_execution_time(feedback)  # Monitor the reviewer's performance
         
         print("Reviewer's feedback:\n", feedback)
         print("Score assigned by Reviewer:", score, "\n")

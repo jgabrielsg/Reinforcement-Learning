@@ -6,6 +6,9 @@ import subprocess
 import sys
 import os
 import pathlib
+import time
+import psutil
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 class LLMAgent:
     def __init__(self, model="llama3.2:1b"):
@@ -220,3 +223,90 @@ class Reviewer(LLMAgent):
             return scores, total_score
         else:
             raise ValueError("Scores not found in the feedback.")
+            
+class MonitoringAndFeedbackAgent:
+    def __init__(self):
+        # Inicialização do agente com valores padrão
+        self.start_time = None
+        self.end_time = None
+
+    def monitor_execution_time(self, code):
+        """
+        Monitora o tempo de execução de um código e retorna o tempo gasto.
+        """
+        self.start_time = time.time()  # Começa a medir o tempo
+        result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        self.end_time = time.time()  # Termina a medição do tempo
+        execution_time = self.end_time - self.start_time
+        return result, execution_time
+
+    def monitor_resource_usage(self):
+        """
+        Monitora o uso de memória e CPU durante a execução.
+        """
+        # Obtém informações do sistema de recursos
+        process = psutil.Process(os.getpid())
+        memory_usage = process.memory_info().rss / (1024 * 1024)  # Memória usada em MB
+        cpu_usage = psutil.cpu_percent(interval=1)  # Percentual de uso de CPU
+        return memory_usage, cpu_usage
+
+    def evaluate_model_performance(self, y_true, y_pred):
+        """
+        Avalia o desempenho de um modelo com base nas métricas de precisão, recall e F1 score.
+        """
+        precision = precision_score(y_true, y_pred, average='weighted')
+        recall = recall_score(y_true, y_pred, average='weighted')
+        f1 = f1_score(y_true, y_pred, average='weighted')
+        return precision, recall, f1
+
+    def provide_feedback(self, code, y_true, y_pred):
+        """
+        Fornece feedback contínuo sobre o código e o modelo.
+        """
+        # Monitoramento de tempo de execução
+        result, execution_time = self.monitor_execution_time(code)
+        memory_usage, cpu_usage = self.monitor_resource_usage()
+
+        # Avaliação do desempenho do modelo
+        precision, recall, f1 = self.evaluate_model_performance(y_true, y_pred)
+
+        feedback = f"""
+        === Performance Feedback ===
+        Tempo de execução do código: {execution_time:.2f} segundos
+        Uso de memória: {memory_usage:.2f} MB
+        Uso de CPU: {cpu_usage:.2f}%
+        
+        === Desempenho do Modelo ===
+        Precisão: {precision:.2f}
+        Recall: {recall:.2f}
+        F1 Score: {f1:.2f}
+        """
+        
+        # Sugestões de melhorias
+        if execution_time > 10:
+            feedback += "\nSugestão: O tempo de execução está muito alto. Considere otimizar o algoritmo."
+        if memory_usage > 100:
+            feedback += "\nSugestão: O código está consumindo muita memória. Verifique o uso de estruturas de dados."
+        if precision < 0.7:
+            feedback += "\nSugestão: A precisão do modelo está baixa. Considere ajustar os parâmetros do modelo ou explorar outros algoritmos."
+        if cpu_usage > 50:
+            feedback += "\nSugestão: O código está utilizando muita CPU. Tente otimizar a complexidade do algoritmo."
+
+        return feedback
+
+    def suggest_execution_adjustments(self, code, y_true, y_pred):
+        """
+        Sugerir ajustes no código ou nos parâmetros do modelo com base na análise de desempenho.
+        """
+        feedback = self.provide_feedback(code, y_true, y_pred)
+        
+        if "Sugestão" in feedback:
+            adjustments = """
+            Ajustes sugeridos:
+            1. Reduzir a complexidade do código para melhorar o tempo de execução e reduzir o uso de memória.
+            2. Tentar usar bibliotecas mais eficientes, como NumPy para operações vetoriais.
+            3. Ajustar os parâmetros do modelo para melhorar a precisão.
+            """
+            feedback += adjustments
+        
+        return feedback
