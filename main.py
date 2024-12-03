@@ -1,7 +1,3 @@
-"""
-Neste módulo implemente o fluxo básico do treinamento por RL dos agentes.
-"""
-
 from agentes import Coder, Reviewer
 from ambiente import Environment
 from qlearning import QLearning
@@ -62,7 +58,7 @@ def main():
             "3. Enhance Readability: Recommend adjustments that improve code readability and maintainability, such as restructuring code blocks, adding comments, or following consistent naming conventions.\n"
             "4. Focus on Best Practices: Suggest ways to follow Python best practices, such as appropriate error handling, modular design, and clarity in code structure.\n\n"
         "Do not include any new code in your response, don't send ANY CODE in general, NOTHING. Focus only on providing constructive feedback based on the code’s" 
-        "current state and the potential errors it could generate, as well as clear, actionable recommendations for improvement. DON'T SEND CODE, DON'T SEND CODE, DON'T SEND CODE, DON'T SEND CODE"
+        "current state and the potential errors it could generate, as well as clear, actionable recommendations for improvement."
         ,
 
         """Your task is to review the provided Python code with the primary goal of verifying whether it fulfills the given problem’s requirements.
@@ -87,14 +83,14 @@ def main():
     reviewer_actions = reviewer_prompts
     
     # Initialize Q-Learning for both agents
-    state_space_size = 3
+    state_space_size = 3 # bad, average and good previous code
     c_qlearning = QLearning(coder_actions, state_space_size)
     r_qlearning = QLearning(reviewer_actions, state_space_size)
     
     feedback = "" # Initially is an empty string
     generated_code = "" # Initially is an empty string
 
-    # Start the iterative process
+    last_reviewer_index = -1 # We just reward the reviewer one iteration later
     previous_score = 0
     state = 0  # Initial state
     for iteration in range(5):
@@ -125,13 +121,15 @@ def main():
 
         # Step 3: Calculate rewards
         coder_reward = environment.reward_coder(generated_code, score)
-        reviewer_reward = environment.reward_reviewer(previous_score, score)
+        if last_reviewer_index != -1:
+            reviewer_reward = environment.reward_reviewer(previous_score, score)
         previous_score = score  # Update the previous score for the next iteration
         
         print("Coder's reward:", coder_reward)
-        print("Reviewer's reward:", reviewer_reward, "\n")
+        if last_reviewer_index != -1:
+            print("Reviewer's reward:", reviewer_reward, "\n")
         
-        # Update Q-values for Coder and Reviewer
+        # Changing the state
         if score < 50: # Bad code
             next_state = 0
         elif 50 <= score <= 90: # Average code
@@ -140,7 +138,8 @@ def main():
             next_state = 2 # Good code
             
         c_qlearning.update_q_value(state, coder_action_index, coder_reward, next_state)
-        r_qlearning.update_q_value(state, reviewer_action_index, reviewer_reward, next_state)
+        if last_reviewer_index != -1:
+            r_qlearning.update_q_value(state, last_reviewer_index, reviewer_reward, next_state) # We just reward the reviewer one iteration later
         
         print("\n=== Q-values for Coder ===")
         print(c_qlearning.q_table)
@@ -150,6 +149,7 @@ def main():
         
         # next state
         state = next_state
+        last_reviewer_index = reviewer_action_index
 
     print("\n=== Iterative agent flow test completed ===")
 

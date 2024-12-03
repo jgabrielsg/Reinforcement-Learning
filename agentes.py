@@ -90,13 +90,12 @@ class Reviewer(LLMAgent):
                 f"Execution Results:\n{execution_report}\n\n"
                 f"Review the code below and provide detailed feedback based on the following criteria:\n\n"
                 f"1. **Data Analysis (20 points)** - Evaluate the clarity and quality of the data analysis. Give a score from 0 to 20.\n"
-                f"2. **Good variable names, functions, and adherence to PEP-8 (20 points)** - Evaluate the use of good naming practices and PEP-8 compliance. Give a score from 0 to 20.\n"
+                f"2. **Adherence to PEP-8 (20 points)** - Evaluate the use of good naming practices and PEP-8 compliance. Give a score from 0 to 20.\n"
                 f"3. **Code logic and structure (20 points)** - Evaluate the clarity and efficiency of the code logic and structure. Give a score from 0 to 20.\n"
                 f"4. **Code comments (10 points)** - Evaluate the quantity and clarity of the comments in the code. Give a score from 0 to 10.\n"
-                f"5. **Visualizations made (10 points)** - Evaluate the clarity and usefulness of the visualizations. Give a score from 0 to 10.\n"
+                f"5. **Visualizations (10 points)** - Evaluate the clarity and usefulness of the visualizations. Give a score from 0 to 10.\n"
                 f"6. **Error prevention (10 points)** - Evaluate whether the code implements checks to prevent errors. Give a score from 0 to 10.\n"
                 f"7. **Code optimization (10 points)** - Evaluate the efficiency of the code. Give a score from 0 to 10.\n\n"
-                f"After the analysis, return at the end of your response a list like this: \"[15, 20, 10, 10, 5, 5, 8]\".\n\n"
                 f"Code to review:\n{code}\n. Don't send any code back to the Coder, just review the code, don't send more code back.")
 
         feedback = self.generate(prompt)
@@ -186,13 +185,15 @@ class Reviewer(LLMAgent):
         :param feedback: The feedback string containing the scores.
         :return: Calculated score based on review quality.
         """
-        # Get the individual scores from the feedback
         try:
+            # Extract scores from feedback
             scores, total_score = self._getScore(feedback)
         except ValueError:
-            # If the scores cannot be extracted, default to a quarter
-            scores = [5, 5, 5, 2, 2, 2, 2]
-            total_score = 23
+            # Default scores if extraction fails
+            scores = [0, 0, 0, 0, 0, 0, 0]
+            total_score = -1
+            return total_score
+
 
         static_issues = static_analysis_report.count("\n")  # Count lines in the Ruff report
         static_score = max(-20, 10 - static_issues)  # Deduct points for each issue
@@ -209,12 +210,12 @@ class Reviewer(LLMAgent):
         :return: Tuple with a list of individual scores and the total score.
         """
 
-        pattern = r"\[([\d, ]+)\]" # Regular expression pattern to match the scores in the feedback
-        match = re.search(pattern, feedback)
-
-        if match:
-            scores_str = match.group(1)  # Extract the scores string
-            scores = list(map(int, scores_str.split(", ")))  # Convert to a list of integers
+        # Regular expression to match scores in almost any format with "(X 'something')"
+        pattern = r"\(\s*(\d+)\s*(?:[^)]*)?\)"
+        scores = re.findall(pattern, feedback)  # Extract all scores as strings
+        
+        if scores:
+            scores = list(map(int, scores))  # Convert to a list of integers
             total_score = sum(scores)  # Calculate the total score
             return scores, total_score
         else:
