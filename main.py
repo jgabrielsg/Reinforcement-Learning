@@ -88,8 +88,8 @@ def main():
     
     # Initialize Q-Learning for both agents
     state_space_size = 3
-    coder_qlearning = QLearning(coder_actions, state_space_size)
-    reviewer_qlearning = QLearning(reviewer_actions, state_space_size)
+    c_qlearning = QLearning(coder_actions, state_space_size)
+    r_qlearning = QLearning(reviewer_actions, state_space_size)
     
     feedback = "" # Initially is an empty string
     generated_code = "" # Initially is an empty string
@@ -101,7 +101,7 @@ def main():
         print(f"\n=== Iteration {iteration + 1} ===")
 
         # Step 1: Coder selects an action using Q-learning and generates code
-        coder_action_index = coder_qlearning.choose_action(state)
+        coder_action_index = c_qlearning.choose_action(state)
         coder_action = coder_actions[coder_action_index]
         
         print(f"Coder's action: {coder_action}")
@@ -112,7 +112,7 @@ def main():
         print("Generated code by Coder:\n", generated_code, "\n")
 
         # Step 2: Reviewer selects an action using Q-learning and reviews the code
-        reviewer_action_index = reviewer_qlearning.choose_action(state)
+        reviewer_action_index = r_qlearning.choose_action(state)
         reviewer_action = reviewer_actions[reviewer_action_index]
         
         print(f"Reviewer's action: {reviewer_action}")
@@ -128,7 +128,6 @@ def main():
         reviewer_reward = environment.reward_reviewer(previous_score, score)
         previous_score = score  # Update the previous score for the next iteration
         
-        # Print rewards
         print("Coder's reward:", coder_reward)
         print("Reviewer's reward:", reviewer_reward, "\n")
         
@@ -140,10 +139,16 @@ def main():
         else:
             next_state = 2 # Good code
             
-        coder_qlearning.update_q_value(state, coder_action_index, coder_reward, next_state)
-        reviewer_qlearning.update_q_value(state, reviewer_action_index, reviewer_reward, next_state)
+        c_qlearning.update_q_value(state, coder_action_index, coder_reward, next_state)
+        r_qlearning.update_q_value(state, reviewer_action_index, reviewer_reward, next_state)
         
-        # Move to the next state
+        print("\n=== Q-values for Coder ===")
+        print(c_qlearning.q_table)
+        
+        print("\n=== Q-values for Reviewer ===")
+        print(r_qlearning.q_table)
+        
+        # next state
         state = next_state
 
     print("\n=== Iterative agent flow test completed ===")

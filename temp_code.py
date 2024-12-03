@@ -1,113 +1,90 @@
+# Import necessary libraries
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
 import seaborn as sns
 
-# Function to load data
+# Load the Sales.csv file into a DataFrame
 def load_data(file_path):
     try:
-        # Load the Sales.csv file
-        sales_df = pd.read_csv(file_path)
-        
-        # Check if the file is not empty
-        if sales_df.empty:
-            print("No data in the file. Please check the file contents.")
-            return None
-        
-        return sales_df
-    
-    except FileNotFoundError:
-        print(f"File not found: {file_path}")
-        return None
-    
-    except pd.errors.EmptyDataError:
-        print(f"No data in the file. Please check the file contents.")
-        return None
-
-# Function to clean and preprocess data
-def clean_data(sales_df):
-    try:
-        # Check for missing values
-        if sales_df.isnull().values.any():
-            print("Missing values detected.")
-
-            # Identify rows with missing values
-            missing_values = sales_df[sales_df.isnull().any(axis=1)]
-
-            # Replace missing values with a specific value or drop the row
-            sales_df.loc[missing_values.index, 'Price'] = np.nan
-
-        # Remove outliers (more than 2 standard deviations from the mean)
-        q1 = sales_df['Price'].quantile(0.25)
-        q3 = sales_df['Price'].quantile(0.75)
-        iqr = q3 - q1
-        lower_bound = q1 - 1.5 * iqr
-        upper_bound = q3 + 1.5 * iqr
-
-        # Replace outliers with a specific value or drop the row
-        sales_df.loc[sales_df['Price'] > (upper_bound + 2 * iqr), 'Price'] = np.nan
-        sales_df.loc[sales_df['Price'] < (lower_bound - 2 * iqr), 'Price'] = np.nan
-
-        # Scale data
-        scaler = StandardScaler()
-        scaled_data = scaler.fit_transform(sales_df[['Date', 'Price', 'Store', 'State']])
-
-        return scaled_data
-    
+        data = pd.read_csv(file_path)
+        return data
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return None
+        print(f"An error occurred: {e}")
 
-
-# Function to create visualizations
-def create_visualizations(data):
-    try:
-        # Validate the 'State' value before creating a bar plot
-        valid_states = ['US', 'Canada']
+# Replace missing values with mean for numerical columns and mode/median for categorical columns
+def replace_missing_values(data):
+    # Select numerical columns
+    num_cols = ['Price']
+    
+    # Iterate through each column in the DataFrame
+    for col in data.columns:
+        if col not in num_cols:
+            # Replace missing values with the mean of the column
+            data[col] = data[col].fillna(data[col].mean())
+            
+            # Replace outliers (more than 2 standard deviations away from the mean)
+            Q1 = np.percentile(data[col], 25)
+            Q3 = np.percentile(data[col], 75)
+            IQR = Q3 - Q1
+            data[col] = np.where((data[col] < (Q1 - 2 * IQR)) | (data[col] > (Q3 + 2 * IQR)), data[col].median(), data[col])
+            
+    # Replace missing values with mode/median for categorical columns
+    categories = ['Store', 'State']
+    for category in categories:
+        data[category] = data[category].fillna(data['Store'].mode().values[0])
         
-        for state in list(data['State'].unique()):
-            if state not in valid_states:
-                print(f"Error: '{state}' is an invalid state.")
-                break
-        
-        # Create a figure with two subplots
-        fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+    return data
 
-        # Sales per state and month of the year plots
-        sales_per_state = data.groupby('State')['Price'].mean()
-        sns.barplot(x=sales_per_state.index, y=sales_per_state.values, ax=axs[0])
-        axs[0].set_title('Sales per State')
-        axs[0].set_xlabel('State')
-        axs[0].set_ylabel('Average Price')
+# Create a new column to indicate if the sale is valid (not null and not an outlier)
+def create_valid_column(data):
+    # Set the mask to include only rows with no missing values or outliers
+    valid_mask = ~(data.isnull() | ((np.abs(np.subtract(data['Price'], np.mean(data['Price')))) > 1000) | 
+                          (data['Store'].isin(['São Paulo', 'Florianópolis']))))
+    
+    # Create a new column with the mask and fill null values with NaN
+    data['valid'] = valid_mask.astype('bool')
+    data.loc[~valid_mask, 'valid'] = np.nan
+    
+    return data
 
-        monthly_sales = data.groupby(pd.Grouper(key='Date', freq='M'))['Price'].sum()
-        sns.lineplot(x=monthly_sales.index.strftime('%Y-%m'), y=monthly_sales.values, ax=axs[1])
-        axs[1].set_title('Sales per Month of the Year')
-        axs[1].set_xlabel('Month')
-        axs[1].set_ylabel('Total Sales')
+# Plot sales per state
+def plot_sales_per_state(data):
+    plt.figure(figsize=(10,6))
+    sns.countplot(x='State', hue='valid', data=data)
+    plt.title("Sales by State")
+    plt.show()
 
-        plt.tight_layout()
+# Plot sales per month of the year
+def plot_sales_per_month(data):
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December']
+    
+    for month in months:
+        month_data = data[data['Date'].dt.month == int(month)]
+        plt.figure(figsize=(10,6))
+        sns.countplot(x='State', hue=month_data['valid'], data=month_data)
+        plt.title(f"Sales by Month of the Year: {month}")
         plt.show()
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-
 
 # Main function
 def main():
-    # Load data
     file_path = 'Sales.csv'
     
-    if not load_data(file_path):
-        return
+    # Load the Sales.csv file into a DataFrame
+    data = load_data(file_path)
     
-    # Clean and preprocess data
-    cleaned_data = clean_data(load_data(file_path))
-
-    # Create visualizations
-    create_visualizations(cleaned_data)
+    # Replace missing values with mean for numerical columns and mode/median for categorical columns
+    data = replace_missing_values(data)
+    
+    # Create a new column to indicate if the sale is valid (not null and not an outlier)
+    data = create_valid_column(data)
+    
+    # Plot sales per state
+    plot_sales_per_state(data)
+    
+    # Plot sales per month of the year
+    plot_sales_per_month(data)
 
 if __name__ == "__main__":
     main()

@@ -88,8 +88,16 @@ class Reviewer(LLMAgent):
         prompt = (f"{action} Consider the following problem: {self.problem_description}.\n\n"
                 f"Static Analysis (Ruff):\n{static_analysis_report}\n\n"
                 f"Execution Results:\n{execution_report}\n\n"
-                f"Review the code below and provide detailed feedback to the coder. "
-                f"Include suggestions to fix execution errors if they exist:\n{code}\n\n")
+                f"Review the code below and provide detailed feedback based on the following criteria:\n\n"
+                f"1. **Data Analysis (20 points)** - Evaluate the clarity and quality of the data analysis. Give a score from 0 to 20.\n"
+                f"2. **Good variable names, functions, and adherence to PEP-8 (20 points)** - Evaluate the use of good naming practices and PEP-8 compliance. Give a score from 0 to 20.\n"
+                f"3. **Code logic and structure (20 points)** - Evaluate the clarity and efficiency of the code logic and structure. Give a score from 0 to 20.\n"
+                f"4. **Code comments (10 points)** - Evaluate the quantity and clarity of the comments in the code. Give a score from 0 to 10.\n"
+                f"5. **Visualizations made (10 points)** - Evaluate the clarity and usefulness of the visualizations. Give a score from 0 to 10.\n"
+                f"6. **Error prevention (10 points)** - Evaluate whether the code implements checks to prevent errors. Give a score from 0 to 10.\n"
+                f"7. **Code optimization (10 points)** - Evaluate the efficiency of the code. Give a score from 0 to 10.\n\n"
+                f"After the analysis, return at the end of your response a list like this: \"[15, 20, 10, 10, 5, 5, 8]\".\n\n"
+                f"Code to review:\n{code}\n. Don't send any code back to the Coder, just review the code, don't send more code back.")
 
         feedback = self.generate(prompt)
         
@@ -97,7 +105,7 @@ class Reviewer(LLMAgent):
         report = self._generate_report(static_analysis_report, execution_report, feedback)
         
         # Score based on issues found and improvements suggested
-        score = self._calculate_score(static_analysis_report, success)
+        score = self._calculate_score(static_analysis_report, success, feedback)
 
         return report, score
 
@@ -142,7 +150,7 @@ class Reviewer(LLMAgent):
                 [sys.executable, "-c", code],
                 capture_output=True,
                 text=True,
-                timeout=20 # kind of big, but it worked
+                timeout=30 # kind of big, but it worked better with a big timer
             )
             if result.returncode == 0:
                 return True, "Code executed successfully."
@@ -170,18 +178,44 @@ class Reviewer(LLMAgent):
         )
         return report
 
-    def _calculate_score(self, static_analysis_report, success):
+    def _calculate_score(self, static_analysis_report, success, feedback):
         """
-        Calculates a score based on the static analysis results and execution success.
+        Calculates a score based on the static analysis results, execution success, and reviewer feedback.
         :param static_analysis_report: Results from static analysis.
         :param success: Boolean indicating if the code executed successfully.
+        :param feedback: The feedback string containing the scores.
         :return: Calculated score based on review quality.
         """
-        # Scoring based on static analysis issues
+        # Get the individual scores from the feedback
+        try:
+            scores, total_score = self._getScore(feedback)
+        except ValueError:
+            # If the scores cannot be extracted, default to a quarter
+            scores = [5, 5, 5, 2, 2, 2, 2]
+            total_score = 23
+
         static_issues = static_analysis_report.count("\n")  # Count lines in the Ruff report
-        static_score = max(0, 10 - static_issues)  # Deduct points for each issue
+        static_score = max(-20, 10 - static_issues)  # Deduct points for each issue
 
-        # Scoring based on execution success
-        execution_score = 5 if success else -5  # Reward for successful execution
+        execution_score = 20 if success else -20  # Reward for successful execution
+        
+        total_score + static_score + execution_score # Final score
+        return max(0, total_score)
+    
+    def _getScore(self, feedback):
+        """
+        Extracts the scores from the feedback and calculates the total score.
+        :param feedback: The feedback string containing the scores.
+        :return: Tuple with a list of individual scores and the total score.
+        """
 
-        return static_score + execution_score
+        pattern = r"\[([\d, ]+)\]" # Regular expression pattern to match the scores in the feedback
+        match = re.search(pattern, feedback)
+
+        if match:
+            scores_str = match.group(1)  # Extract the scores string
+            scores = list(map(int, scores_str.split(", ")))  # Convert to a list of integers
+            total_score = sum(scores)  # Calculate the total score
+            return scores, total_score
+        else:
+            raise ValueError("Scores not found in the feedback.")

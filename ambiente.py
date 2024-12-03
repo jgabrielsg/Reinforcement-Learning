@@ -33,27 +33,26 @@ class Environment:
 
     def execute_code(self, code):
         """
-        Executes the given code in a safe environment and captures any output or errors.
+        Executes the code to check for runtime errors.
         :param code: Code to be executed.
-        :return: Tuple of (success: bool, output: str).
+        :return: Tuple (success: bool, output: str).
         """
         try:
-            # Run the code in a subprocess using the correct Python interpreter
             result = subprocess.run(
                 [sys.executable, "-c", code],
-                text=True,
                 capture_output=True,
-                timeout=5
+                text=True,
+                timeout=30 # kind of big, but it worked better with a big timer
             )
             if result.returncode == 0:
-                return True, result.stdout.strip()  # Code ran successfully
+                return True, "Code executed successfully."
             else:
-                return False, result.stderr.strip()  # Code had an error
+                return False, result.stderr
         except subprocess.TimeoutExpired:
             return False, "Error: Code execution timed out."
         except Exception as e:
-            print(f"Error executing code: {e}")
-            return False, str(e)
+            print(f"Error during execution: {e}")
+            return False, f"Error during execution: {e}"
 
     def check_correctness(self, code_output):
         """
