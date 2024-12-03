@@ -6,4 +6,4 @@ Para fazer o treinamento dos agentes precisamos definir duas coisas:
 3. Uma vez escolhido o problema, definir métricas de conclusão
     1. Acurácia da análise (Problemas de análise)
     2. Passar testes unitários
-    3. Outros critários.
+    3. Outros critérios.
