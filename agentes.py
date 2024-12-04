@@ -250,36 +250,31 @@ class MonitoringAndFeedbackAgent:
         cpu_usage = psutil.cpu_percent(interval=1)  # Percentual de uso de CPU
         return memory_usage, cpu_usage
 
-    def evaluate_model_performance(self, y_true, y_pred):
+    def calculate_score_ratio(self, score, max_score=130):
         """
-        Avalia o desempenho de um modelo com base nas métricas de precisão, recall e F1 score.
+        Calcula o score em uma escala de score/130 e aplica um limiar (threshold).
+        :param score: A pontuação do código.
+        :param max_score: O valor máximo da pontuação (por padrão 130).
+        :return: A razão do score/130.
         """
-        precision = precision_score(y_true, y_pred, average='weighted')
-        recall = recall_score(y_true, y_pred, average='weighted')
-        f1 = f1_score(y_true, y_pred, average='weighted')
-        return precision, recall, f1
+        score_ratio = score / max_score  # Calcular a razão score/130
+        return score_ratio
 
-    def provide_feedback(self, code, y_true, y_pred):
+    def provide_feedback(self, code, score):
         """
         Fornece feedback contínuo sobre o código e o modelo.
         """
-        # Monitoramento de tempo de execução
+        # Monitoramento do modelo
         result, execution_time = self.monitor_execution_time(code)
         memory_usage, cpu_usage = self.monitor_resource_usage()
+        score_ratio = self.calculate_score_ratio(score)
 
-        # Avaliação do desempenho do modelo
-        precision, recall, f1 = self.evaluate_model_performance(y_true, y_pred)
 
         feedback = f"""
         === Performance Feedback ===
         Tempo de execução do código: {execution_time:.2f} segundos
         Uso de memória: {memory_usage:.2f} MB
         Uso de CPU: {cpu_usage:.2f}%
-        
-        === Desempenho do Modelo ===
-        Precisão: {precision:.2f}
-        Recall: {recall:.2f}
-        F1 Score: {f1:.2f}
         """
         
         # Sugestões de melhorias
@@ -287,26 +282,12 @@ class MonitoringAndFeedbackAgent:
             feedback += "\nSugestão: O tempo de execução está muito alto. Considere otimizar o algoritmo."
         if memory_usage > 100:
             feedback += "\nSugestão: O código está consumindo muita memória. Verifique o uso de estruturas de dados."
-        if precision < 0.7:
-            feedback += "\nSugestão: A precisão do modelo está baixa. Considere ajustar os parâmetros do modelo ou explorar outros algoritmos."
-        if cpu_usage > 50:
+        if cpu_usage > 10:
             feedback += "\nSugestão: O código está utilizando muita CPU. Tente otimizar a complexidade do algoritmo."
+        if score_ratio < 0.60: 
+            feedback += "\nSugestão: A pontuação do código está abaixo do esperado. Tente melhorar a eficiência e sofrer menos penalizações."
 
-        return feedback
+        # Imprimir feedback
+        print("Feedback gerado:\n", feedback)
 
-    def suggest_execution_adjustments(self, code, y_true, y_pred):
-        """
-        Sugerir ajustes no código ou nos parâmetros do modelo com base na análise de desempenho.
-        """
-        feedback = self.provide_feedback(code, y_true, y_pred)
-        
-        if "Sugestão" in feedback:
-            adjustments = """
-            Ajustes sugeridos:
-            1. Reduzir a complexidade do código para melhorar o tempo de execução e reduzir o uso de memória.
-            2. Tentar usar bibliotecas mais eficientes, como NumPy para operações vetoriais.
-            3. Ajustar os parâmetros do modelo para melhorar a precisão.
-            """
-            feedback += adjustments
-        
-        return feedback
+        return feedback, score

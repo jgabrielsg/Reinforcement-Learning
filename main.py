@@ -106,16 +106,6 @@ def main():
         
         generated_code = coder.generate_code(coder_action, feedback, generated_code) # Gets the last code as well
 
-        # Monitor performance during coder's action
-        monitor.monitor_execution_time(generated_code)  # Monitor the coder's performance
-        memory_usage, cpu_usage = monitor.monitor_resource_usage()  # Monitor resource usage
-
-        print(f"Execution Time: {monitor.end_time - monitor.start_time:.2f} seconds")
-        print(f"Memory Usage: {memory_usage:.2f} MB")
-        print(f"CPU Usage: {cpu_usage:.2f}%")
-        
-        print("Generated code by Coder:\n", generated_code, "\n")
-
         # Step 2: Reviewer selects an action using Q-learning and reviews the code
         reviewer_action_index = r_qlearning.choose_action(state)
         reviewer_action = reviewer_actions[reviewer_action_index]
@@ -125,8 +115,26 @@ def main():
 
         feedback, score = reviewer.review_code(generated_code, reviewer_action)
 
+        # Calcular a razão de score
+        score_ratio = monitor.calculate_score_ratio(score)  # Adiciona a chamada à função
+        print(f"Score Ratio (score / 130): {score_ratio:.2f}")
+
+        # Monitor performance during coder's action
+        monitor.provide_feedback(generated_code, score)  # Monitor the coder's performance
+
+        # Monitor performance during coder's action
+        monitor.monitor_execution_time(generated_code)  # Monitor the coder's performance
+        memory_usage, cpu_usage = monitor.monitor_resource_usage()  # Monitor resource usage
+
+        # Imprimir tempo de execução, uso de memória e CPU
+        print(f"Execution Time: {monitor.end_time - monitor.start_time:.2f} seconds")
+        print(f"Memory Usage: {memory_usage:.2f} MB")
+        print(f"CPU Usage: {cpu_usage:.2f}%")
+        
+        print("Generated code by Coder:\n", generated_code, "\n")
+
         # Monitor performance during reviewer's action
-        monitor.monitor_execution_time(feedback)  # Monitor the reviewer's performance
+        monitor.provide_feedback(feedback, score)  # Monitor the reviewer's performance
         
         print("Reviewer's feedback:\n", feedback)
         print("Score assigned by Reviewer:", score, "\n")
