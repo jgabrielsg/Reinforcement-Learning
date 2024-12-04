@@ -110,6 +110,8 @@ def main():
         reviewer_action_index = r_qlearning.choose_action(state)
         reviewer_action = reviewer_actions[reviewer_action_index]
         
+        print("Generated code by Coder:\n", generated_code, "\n")
+        
         print(f"Reviewer's action: {reviewer_action}")
         print(f"\n=== Reviewer is working... ===")
 
@@ -130,8 +132,6 @@ def main():
         print(f"Execution Time: {monitor.end_time - monitor.start_time:.2f} seconds")
         print(f"Memory Usage: {memory_usage:.2f} MB")
         print(f"CPU Usage: {cpu_usage:.2f}%")
-        
-        print("Generated code by Coder:\n", generated_code, "\n")
 
         # Monitor performance during reviewer's action
         monitor.provide_feedback(feedback, score)  # Monitor the reviewer's performance

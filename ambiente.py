@@ -100,11 +100,7 @@ class Environment:
         """
         # Execute and check correctness
         success, output = self.execute_code(code)
-        correctness_reward = 1.0 if success and self.check_correctness(output) else -1.0
-
-        # Analyze code quality
-        quality_score = self.analyze_code_quality(code)
-        quality_reward = self.calculate_reward(quality_score, agent_type="coder")
+        correctness_reward = 1.0 if success and self.check_correctness(output) else -1.
 
         # Calculate complexity (penalize high complexity)
         complexity_score = self.calculate_complexity(code)
@@ -115,15 +111,17 @@ class Environment:
             reviewer_penalty = 0
         elif reviewer_score < 25:  # Bad code, large penalty
             reviewer_penalty = -5.0
-        elif 25 <= reviewer_score <= 50:  # Average code, smaller penalty
+        elif 25 <= reviewer_score <= 40:  # Average code, smaller penalty
             reviewer_penalty = -3.0
-        elif 50 <= reviewer_score <= 75:  # Average code, smaller penalty
+        elif 40 <= reviewer_score <= 60:  # Average code, smaller penalty
             reviewer_penalty = -1.0
+        elif 60 <= reviewer_score <= 80:  # Average code, smaller penalty
+            reviewer_penalty = 1.0
         else:  # Good code, reward
             reviewer_penalty = 3.0
 
         # Combine all rewards/penalties
-        return correctness_reward + quality_reward + complexity_penalty + reviewer_penalty
+        return correctness_reward + complexity_penalty + reviewer_penalty
 
 
     def reward_reviewer(self, previous_score, current_score):
