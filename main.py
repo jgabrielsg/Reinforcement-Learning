@@ -117,10 +117,6 @@ def main():
 
         feedback, score = reviewer.review_code(generated_code, reviewer_action)
 
-        # Calcular a razão de score
-        score_ratio = monitor.calculate_score_ratio(score)  # Adiciona a chamada à função
-        print(f"Score Ratio (score / 130): {score_ratio:.2f}")
-
         # Monitor performance during coder's action
         monitor.provide_feedback(generated_code, score)  # Monitor the coder's performance
 
