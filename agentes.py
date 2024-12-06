@@ -250,16 +250,6 @@ class MonitoringAndFeedbackAgent:
         cpu_usage = psutil.cpu_percent(interval=1)  # Percentual de uso de CPU
         return memory_usage, cpu_usage
 
-    def calculate_score_ratio(self, score, max_score=130):
-        """
-        Calcula o score em uma escala de score/130 e aplica um limiar (threshold).
-        :param score: A pontuação do código.
-        :param max_score: O valor máximo da pontuação (por padrão 130).
-        :return: A razão do score/130.
-        """
-        score_ratio = score / max_score  # Calcular a razão score/130
-        return score_ratio
-
     def provide_feedback(self, code, score):
         """
         Fornece feedback contínuo sobre o código e o modelo.
@@ -267,8 +257,6 @@ class MonitoringAndFeedbackAgent:
         # Monitoramento do modelo
         result, execution_time = self.monitor_execution_time(code)
         memory_usage, cpu_usage = self.monitor_resource_usage()
-        score_ratio = self.calculate_score_ratio(score)
-
 
         feedback = f"""
         === Performance Feedback ===
@@ -284,10 +272,8 @@ class MonitoringAndFeedbackAgent:
             feedback += "\nSugestão: O código está consumindo muita memória. Verifique o uso de estruturas de dados."
         if cpu_usage > 10:
             feedback += "\nSugestão: O código está utilizando muita CPU. Tente otimizar a complexidade do algoritmo."
-        if score_ratio < 0.60: 
-            feedback += "\nSugestão: A pontuação do código está abaixo do esperado. Tente melhorar a eficiência e sofrer menos penalizações."
 
         # Imprimir feedback
         print("Feedback gerado:\n", feedback)
 
-        return feedback, score
+        return feedback
