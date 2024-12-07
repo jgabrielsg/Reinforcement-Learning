@@ -268,9 +268,9 @@ class MonitoringAndFeedbackAgent:
         # Sugestões de melhorias
         if execution_time > 10:
             feedback += "\nSugestão: O tempo de execução está muito alto. Considere otimizar o algoritmo."
-        if memory_usage > 100:
+        if memory_usage > 150:
             feedback += "\nSugestão: O código está consumindo muita memória. Verifique o uso de estruturas de dados."
-        if cpu_usage > 10:
+        if cpu_usage > 70:
             feedback += "\nSugestão: O código está utilizando muita CPU. Tente otimizar a complexidade do algoritmo."
 
         # Imprimir feedback
