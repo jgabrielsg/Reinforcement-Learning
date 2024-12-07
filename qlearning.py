@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 import random
 
 class QLearning:
@@ -29,3 +30,16 @@ class QLearning:
 
         # Exploration rate decay
         self.exploration_rate *= self.exploration_decay
+
+    def save_q_table(self, iteration, is_reviewer=False):
+        # Usa um nome diferente para o arquivo dependendo de quem está salvando
+        file_name = "reviewer_q_tables.csv" if is_reviewer else "coder_q_tables.csv"
+        with open(file_name, 'a', newline='') as file:
+            writer = csv.writer(file)
+
+            if iteration == 0:  # No primeiro, escreve o cabeçalho
+                header = ['Iteration'] + [f'Action {i+1}' for i in range(self.q_table.shape[1])]
+                writer.writerow(header)
+
+            for row in self.q_table:
+                writer.writerow([iteration] + list(row))
