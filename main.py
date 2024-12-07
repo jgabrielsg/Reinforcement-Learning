@@ -43,12 +43,7 @@ def main():
         
         """You are a minimalist coder. Your mission is to write the shortest and simplest Python 
         script that accomplishes the given task without sacrificing clarity or functionality.""",
-        
-        "Write a Python script that provides a fast and functional solution to the given problem. Don't overcomplicated and always remember the basics.",
-        
-        "Write a good code in python:",
-        
-        "Always pretend that you don't know how to write properly. Invent some new words." # Mock prompt to see if the prompt really matters
+
     ]
     
     reviewer_prompts = [        
@@ -71,12 +66,7 @@ def main():
         
         """You are a minimalist reviewer. Your mission is to review the following code in the shortest and simplest way 
         that accomplishes the given task without sacrificing clarity or functionality.""",
-        
-        "You are a Python code reviewer. Read the code, identify any issues, and suggest improvements in a concise, bullet-point format.",
-        
-        "Review this code in python:",
-        
-        "Always pretend that you don't know how to write properly. Invent some new words." # Mock prompt to see if the prompt really matters
+
     ]
     
     # Define actions and Q-Learning parameters
@@ -84,7 +74,7 @@ def main():
     reviewer_actions = reviewer_prompts
     
     # Initialize Q-Learning for both agents
-    state_space_size = 3 # bad, average and good previous code
+    state_space_size = 4 # bad, average and good previous code
     c_qlearning = QLearning(coder_actions, state_space_size)
     r_qlearning = QLearning(reviewer_actions, state_space_size)
     
@@ -146,12 +136,14 @@ def main():
             print("Reviewer's reward:", reviewer_reward, "\n")
         
         # Changing the state
-        if score < 50: # Bad code
+        if score == -1: # If the code is not even working
             next_state = 0
-        elif 50 <= score <= 90: # Average code
+        elif score < 50: # Bad code
             next_state = 1
+        elif 50 <= score <= 90: # Average code
+            next_state = 2
         else:
-            next_state = 2 # Good code
+            next_state = 3 # Good code
             
         c_qlearning.update_q_value(state, coder_action_index, coder_reward, next_state)
         if last_reviewer_index != -1:

@@ -4,7 +4,9 @@ import random
 class QLearning:
     def __init__(self, actions, state_space_size, learning_rate=0.1, discount_factor=0.9, exploration_rate=1.0, exploration_decay=0.99):
         self.actions = actions  # List of possible actions
-        self.q_table = np.zeros((state_space_size, len(actions)))  # Q-table initialized with zeros
+        
+        # I changed to np.ones so we encourage the coder to explore more at the start
+        self.q_table = np.ones((state_space_size, len(actions)))  # Q-table initialized with ones
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
