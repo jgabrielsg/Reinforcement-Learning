@@ -64,3 +64,8 @@ Ação | Descrição
 Monitorar Tempo de Execução | Acompanhar o tempo gasto na execução de código, identificando gargalos ou ineficiências.
 Monitorar Uso de Recursos | Avaliar o uso de memória e CPU durante a execução, sugerindo melhorias para otimização.
 Fornecer Feedback de Eficiência | Enviar feedback contínuo para o Codificador e o Revisor sobre o desempenho do código e possíveis melhorias.
+
+# Diagrama do Projeto
+
+![Diagram](https://github.com/user-attachments/assets/043e01e9-d9ca-4672-b587-9e5b44c25b02)
+
