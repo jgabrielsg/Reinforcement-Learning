@@ -1,3 +1,26 @@
+# Projeto de Reinforcement Learning
+## João Gabriel, Gustavo Bianchi e Leonardo
+
+O objetivo desse código é treinar dois agentes LLM para cooperarem na solução de problemas de análise de dados e criarem códigos.
+O ambiente de treinamento é um ambiente customizado, onde os agentes devem aprender a cooperar para maximizar a recompensa.
+
+Para resolver esse problema, usamos dois tipos de agentes principais: um agente que escreve o código inicial e um agente que 
+revisa e sugere melhorias. O agente revisor deve ser capaz de identificar erros e sugerir melhorias no código. O agente que 
+escreve o código deve ser capaz de corrigir os erros e melhorar o código.
+
+Problema passado para a LLM:
+
+```
+We have a Sales.csv with 4 columns: Date, with the date (format 2024-09-25) of the sale;
+Price, how much money (format 20.99USD) the client paid for the sale;
+Store, in which store was made that sale, the IDs go from 1 to 5
+State, the state the sale was made. We work in 2 states, Paraná and Acre
+There's some data missing, with null values and outliers. Find the outliers (like a sale costing more than 
+100000USD) and the missing data and get rid of them. After that, your job is to create 2 visualizations: 
+- Sales per state
+- Sales per month of the year.
+```
+
 # Agentes
 
 ## Agente Codificador
