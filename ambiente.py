@@ -1,25 +1,28 @@
 import ast
 import subprocess
 import sys
+import matplotlib.pyplot as plt
 
 class Environment:
-    def __init__(self, threshold_score=50, expected_output=None):
+    def __init__(self, threshold_score=50, expected_output=None, max_iterations=100):
         self.threshold_score = threshold_score  # Minimum score to consider the code satisfactory
         self.expected_output = expected_output  # Expected output for code correctness check
+        self.max_iterations = max_iterations
 
-    def calculate_reward(self, score, agent_type="coder"):
+    def calculate_reward(self, score, agent_type="coder", iteration=0):
         """
         Calculates the reward for the coder or reviewer based on the score.
         :param score: Total score given by the Reviewer.
         :param agent_type: Type of agent ("coder" or "reviewer").
         :return: Reward (positive for high scores, negative for low scores).
         """
+        exploration_factor = min(1.0, iteration / self.max_iterations)
         try:
             if agent_type == "coder":
                 if score >= self.threshold_score:
                     return 1.0  # Maximum reward for satisfactory code
                 else:
-                    return -1.0 + (score / self.threshold_score)  # Proportional penalty
+                    return -1.0 + (score / self.threshold_score) * exploration_factor  # Proportional penalty
         except Exception as e:
             print(f"Error calculating reward: {e}")
             return -1.0  # Default to maximum penalty on error
@@ -38,6 +41,12 @@ class Environment:
                 timeout=30 # kind of big, but it worked better with a big timer
             )
             if result.returncode == 0:
+                if 'matplotlib.pyplot' in code:
+                    plt.close()
+                    plt.close()
+                    plt.close()
+                    plt.close()
+                    plt.close()
                 return True, "Code executed successfully."
             else:
                 return False, result.stderr
@@ -90,7 +99,7 @@ class Environment:
             print(f"Error calculating complexity: {e}")
             return float('inf')  # Infinite complexity on error
 
-    def reward_coder(self, code, reviewer_score):
+    def reward_coder(self, code, reviewer_score, iteration=0):
         """
         Rewards the coder based on code quality, correctness, and complexity.
         The score from the reviewer is used to adjust the reward for the coder.
@@ -100,7 +109,14 @@ class Environment:
         """
         # Execute and check correctness
         success, output = self.execute_code(code)
-        correctness_reward = 1.0 if success and self.check_correctness(output) else -1.
+        correctness_reward = 0
+        if success:
+            correctness_reward += 2.0
+        else:
+            correctness_reward -= 1
+            
+        if self.check_correctness(output):
+            correctness_reward += 1
 
         # Calculate complexity (penalize high complexity)
         complexity_score = self.calculate_complexity(code)
@@ -120,8 +136,10 @@ class Environment:
         else:  # Good code, reward
             reviewer_penalty = 3.0
 
-        # Combine all rewards/penalties
-        return correctness_reward + complexity_penalty + reviewer_penalty
+        time_adjustment = self.calculate_reward(reviewer_score, agent_type="coder", iteration=iteration)
+
+        # Combine all rewards/penalties 
+        return correctness_reward + complexity_penalty + reviewer_penalty +  time_adjustment
 
 
     def reward_reviewer(self, previous_score, current_score):
