@@ -1,0 +1,7 @@
+ollama
+ruff
+psutil
+scikit-learn
+pandas
+numpy
+matplotlib
